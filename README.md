@@ -8,7 +8,7 @@ A Python CLI agent that tracks flight prices in near-realtime, finds the cheapes
 - **Price monitoring** — poll every N minutes; get alerted when price drops below your threshold
 - **Excel history** — every price fetch is recorded in `data/flight_prices.xlsx` (one sheet per route)
 - **Trend analysis** — find the cheapest hour of day, day of week, and price trend over time
-- **Dual API support** — Amadeus (preferred, free sandbox) or SerpApi Google Flights (fallback)
+- **No API key needed** — default provider fetches Google Flights data via [fast-flights](https://pypi.org/project/fast-flights/); SerpApi is an optional alternative
 
 ## Setup
 
@@ -21,20 +21,13 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv sync
 ```
 
-### 2. Configure API keys
+### 2. (Optional) configure
+No API key is required — the default Google Flights provider works out of the box.
+
+To use SerpApi instead (more structured data, free trial at https://serpapi.com/users/sign_up):
 ```bash
-cp .env.example .env
+cp .env.example .env   # then set SERPAPI_KEY
 ```
-Edit `.env` and add at least one set of credentials:
-
-**Option A — Amadeus (recommended, free sandbox)**
-1. Sign up at https://developers.amadeus.com/register
-2. Create a new app → copy Client ID and Client Secret
-3. Set `AMADEUS_CLIENT_ID` and `AMADEUS_CLIENT_SECRET` in `.env`
-
-**Option B — SerpApi (free trial)**
-1. Sign up at https://serpapi.com/users/sign_up
-2. Copy your API key → set `SERPAPI_KEY` in `.env`
 
 ## Usage
 

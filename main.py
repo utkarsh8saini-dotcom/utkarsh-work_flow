@@ -61,6 +61,18 @@ def main() -> None:
         print(f"\nError: {exc}\n", file=sys.stderr)
         sys.exit(1)
 
+    try:
+        _dispatch(agent, args)
+    except KeyboardInterrupt:
+        pass
+    except Exception as exc:
+        print(f"\nRequest failed: {exc}\n"
+              "Check your internet connection and that the airport codes/date are valid.",
+              file=sys.stderr)
+        sys.exit(1)
+
+
+def _dispatch(agent, args) -> None:
     if args.command == "search":
         agent.search_cheapest(
             origin=args.origin,

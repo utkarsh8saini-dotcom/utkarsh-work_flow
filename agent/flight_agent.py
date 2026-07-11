@@ -14,22 +14,14 @@ console = Console()
 
 
 def _select_provider() -> FlightProvider:
-    if os.getenv("AMADEUS_CLIENT_ID") and os.getenv("AMADEUS_CLIENT_SECRET"):
-        from agent.providers.amadeus import AmadeusProvider
-        provider = AmadeusProvider()
-        console.print(f"[dim]Provider: {provider.name}[/dim]")
-        return provider
     if os.getenv("SERPAPI_KEY"):
         from agent.providers.serpapi import SerpApiProvider
         provider = SerpApiProvider()
-        console.print(f"[dim]Provider: {provider.name}[/dim]")
-        return provider
-    raise RuntimeError(
-        "No API credentials found.\n"
-        "Set AMADEUS_CLIENT_ID + AMADEUS_CLIENT_SECRET  (free at developers.amadeus.com)\n"
-        "or SERPAPI_KEY  (free trial at serpapi.com)\n"
-        "in a .env file."
-    )
+    else:
+        from agent.providers.google_flights import GoogleFlightsProvider
+        provider = GoogleFlightsProvider()
+    console.print(f"[dim]Provider: {provider.name}[/dim]")
+    return provider
 
 
 class FlightAgent:
