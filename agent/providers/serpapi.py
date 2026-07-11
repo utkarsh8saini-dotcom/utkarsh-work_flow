@@ -21,21 +21,18 @@ class SerpApiProvider(FlightProvider):
         adults: int = 1,
         currency: str = "USD",
     ) -> list[FlightOffer]:
-        try:
-            from serpapi import GoogleSearch
-        except ImportError:
-            raise RuntimeError("serpapi package not installed. Run: pip install serpapi")
+        import serpapi
 
-        params = {
+        client = serpapi.Client(api_key=self._api_key)
+        results = client.search({
             "engine": "google_flights",
+            "type": "2",  # one-way
             "departure_id": origin.upper(),
             "arrival_id": destination.upper(),
             "outbound_date": date,
             "adults": adults,
             "currency": currency,
-            "api_key": self._api_key,
-        }
-        results = GoogleSearch(params).get_dict()
+        })
         offers: list[FlightOffer] = []
         now = datetime.now()
 
