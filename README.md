@@ -12,9 +12,13 @@ A Python CLI agent that tracks flight prices in near-realtime, finds the cheapes
 
 ## Setup
 
-### 1. Install dependencies
+### 1. Install dependencies (uses [uv](https://docs.astral.sh/uv/))
 ```bash
-pip install -r requirements.txt
+# Install uv if you don't have it
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Create the virtualenv and install everything from pyproject.toml / uv.lock
+uv sync
 ```
 
 ### 2. Configure API keys
@@ -34,28 +38,30 @@ Edit `.env` and add at least one set of credentials:
 
 ## Usage
 
+Run all commands with `uv run` (no need to activate the virtualenv).
+
 ### One-shot search
 ```bash
-python main.py search --from DEL --to LHR --date 2026-08-15
-python main.py search --from JFK --to LAX --date 2026-09-01 --currency USD
+uv run main.py search --from DEL --to LHR --date 2026-08-15
+uv run main.py search --from JFK --to LAX --date 2026-09-01 --currency USD
 ```
 
 ### Monitor prices (continuous polling)
 ```bash
 # Poll every 30 min, alert if price drops below $500
-python main.py monitor --from DEL --to LHR --date 2026-08-15 --threshold 500
+uv run main.py monitor --from DEL --to LHR --date 2026-08-15 --threshold 500
 
 # Poll every 60 min with custom interval
-python main.py monitor --from DEL --to LHR --date 2026-08-15 --interval 60
+uv run main.py monitor --from DEL --to LHR --date 2026-08-15 --interval 60
 
 # Poll every 5 minutes (testing)
-python main.py monitor --from JFK --to LAX --date 2026-09-01 --interval 5 --threshold 300
+uv run main.py monitor --from JFK --to LAX --date 2026-09-01 --interval 5 --threshold 300
 ```
 Press **Ctrl+C** to stop monitoring. All prices are saved to Excel automatically.
 
 ### Analyze historical data
 ```bash
-python main.py analyze --from DEL --to LHR
+uv run main.py analyze --from DEL --to LHR
 ```
 Shows:
 - Average price by day of week
