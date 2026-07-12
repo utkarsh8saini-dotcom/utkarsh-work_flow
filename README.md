@@ -35,20 +35,24 @@ Run all commands with `uv run` (no need to activate the virtualenv).
 
 ### One-shot search
 ```bash
-uv run main.py search --from DEL --to LHR --date 2026-08-15
-uv run main.py search --from JFK --to LAX --date 2026-09-01 --currency USD
+# Scan every day from today through the end of this month, show cheapest per day
+uv run main.py search --from DEL --to DPS
+
+# Specific single date (full ranked table for that day)
+uv run main.py search --from DEL --to LHR --date 2026-08-15 --end-date 2026-08-15
+
+# Custom range
+uv run main.py search --from DEL --to DPS --date 2026-07-20 --end-date 2026-07-31
 ```
+With no `--date`, the range defaults to **today → last day of the month**. The output shows the cheapest flight for each travel day and stars the best deal overall.
 
 ### Monitor prices (continuous polling)
 ```bash
-# Poll every 30 min, alert if price drops below $500
-uv run main.py monitor --from DEL --to LHR --date 2026-08-15 --threshold 500
+# Track every remaining day this month, alert if any day drops below $400
+uv run main.py monitor --from DEL --to DPS --threshold 400
 
-# Poll every 60 min with custom interval
-uv run main.py monitor --from DEL --to LHR --date 2026-08-15 --interval 60
-
-# Poll every 5 minutes (testing)
-uv run main.py monitor --from JFK --to LAX --date 2026-09-01 --interval 5 --threshold 300
+# Single date, poll every 60 min
+uv run main.py monitor --from DEL --to LHR --date 2026-08-15 --end-date 2026-08-15 --interval 60
 ```
 Press **Ctrl+C** to stop monitoring. All prices are saved to Excel automatically.
 

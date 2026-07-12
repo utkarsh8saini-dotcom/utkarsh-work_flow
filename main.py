@@ -23,8 +23,11 @@ def _build_parser() -> argparse.ArgumentParser:
                    help="Origin airport code, e.g. DEL")
     s.add_argument("--to", dest="destination", required=True, metavar="IATA",
                    help="Destination airport code, e.g. LHR")
-    s.add_argument("--date", required=True, metavar="YYYY-MM-DD",
-                   help="Departure date")
+    s.add_argument("--date", default=None, metavar="YYYY-MM-DD",
+                   help="Departure date / range start (default: today)")
+    s.add_argument("--end-date", default=None, metavar="YYYY-MM-DD",
+                   help="Range end, inclusive (default: last day of the start date's month; "
+                        "pass the same value as --date for a single-day search)")
     s.add_argument("--adults", type=int, default=1, metavar="N")
     s.add_argument("--currency", default=os.getenv("DEFAULT_CURRENCY", "USD"))
 
@@ -32,7 +35,10 @@ def _build_parser() -> argparse.ArgumentParser:
     m = sub.add_parser("monitor", help="Continuously poll prices and alert on drops")
     m.add_argument("--from", dest="origin", required=True, metavar="IATA")
     m.add_argument("--to", dest="destination", required=True, metavar="IATA")
-    m.add_argument("--date", required=True, metavar="YYYY-MM-DD")
+    m.add_argument("--date", default=None, metavar="YYYY-MM-DD",
+                   help="Departure date / range start (default: today)")
+    m.add_argument("--end-date", default=None, metavar="YYYY-MM-DD",
+                   help="Range end, inclusive (default: last day of the start date's month)")
     m.add_argument("--threshold", type=float, default=None, metavar="PRICE",
                    help="Alert when price falls below this value")
     m.add_argument("--interval", type=int,
@@ -74,18 +80,20 @@ def main() -> None:
 
 def _dispatch(agent, args) -> None:
     if args.command == "search":
+        from agent.dates import build_date_range
         agent.search_cheapest(
             origin=args.origin,
             destination=args.destination,
-            date=args.date,
+            dates=build_date_range(args.date, args.end_date),
             adults=args.adults,
             currency=args.currency,
         )
     elif args.command == "monitor":
+        from agent.dates import build_date_range
         agent.monitor(
             origin=args.origin,
             destination=args.destination,
-            date=args.date,
+            dates=build_date_range(args.date, args.end_date),
             threshold=args.threshold,
             interval_minutes=args.interval,
             adults=args.adults,

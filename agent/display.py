@@ -45,6 +45,46 @@ def print_offers_table(offers: list[FlightOffer], title: str = "Flight Results")
     console.print(f"[dim]Cheapest: {offers[0].display_price()} on {offers[0].airline}[/dim]")
 
 
+def print_daily_cheapest(cheapest_by_date: dict[str, FlightOffer], origin: str, destination: str) -> None:
+    """One row per travel date with that day's cheapest flight; best day starred."""
+    if not cheapest_by_date:
+        console.print("[yellow]No flights found for any date in the range.[/yellow]")
+        return
+
+    best_date = min(cheapest_by_date, key=lambda d: cheapest_by_date[d].price)
+    table = Table(
+        title=f"Cheapest flight per day: {origin} → {destination}",
+        box=box.ROUNDED,
+        header_style="bold white on dark_blue",
+    )
+    table.add_column("Travel Date", style="cyan", min_width=12)
+    table.add_column("Price", style="bold green", justify="right", min_width=12)
+    table.add_column("Airline", min_width=18)
+    table.add_column("Departure", min_width=14)
+    table.add_column("Duration", justify="center")
+    table.add_column("Stops", justify="center")
+
+    for d in sorted(cheapest_by_date):
+        o = cheapest_by_date[d]
+        star = " ★" if d == best_date else ""
+        stops_label = "Direct" if o.stops == 0 else f"{o.stops} stop{'s' if o.stops > 1 else ''}"
+        table.add_row(
+            f"{d}{star}",
+            o.display_price(),
+            o.airline,
+            o.departure_time.strftime("%H:%M"),
+            o.duration,
+            stops_label,
+        )
+
+    console.print(table)
+    best = cheapest_by_date[best_date]
+    console.print(
+        f"[bold green]Best deal:[/bold green] {best.display_price()} on {best.airline}, "
+        f"fly {best_date} ({best.departure_time.strftime('%H:%M')}, {best.duration})"
+    )
+
+
 def print_alert(offer: FlightOffer, threshold: float) -> None:
     console.print(Panel(
         f"[bold green]PRICE DROP ALERT![/bold green]\n\n"
