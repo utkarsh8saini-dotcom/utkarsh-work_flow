@@ -21,11 +21,13 @@ if (-not $token) {
   exit 1
 }
 
-# --- ensure cloudflared is installed ---
-if (-not (Get-Command cloudflared -ErrorAction SilentlyContinue)) {
-  Write-Host "cloudflared not found. Install it once with:" -ForegroundColor Yellow
+# --- locate cloudflared (prefer the local .\cloudflared.exe we downloaded) ---
+if (Test-Path ".\cloudflared.exe") { $cfExe = ".\cloudflared.exe" }
+elseif (Get-Command cloudflared -ErrorAction SilentlyContinue) { $cfExe = "cloudflared" }
+else {
+  Write-Host "cloudflared not found. Get it once with:" -ForegroundColor Yellow
   Write-Host "    winget install --id Cloudflare.cloudflared" -ForegroundColor Cyan
-  Write-Host "(or: scoop install cloudflared)  then re-run this script." -ForegroundColor Yellow
+  Write-Host "  or download cloudflared-windows-amd64.exe into this folder as cloudflared.exe" -ForegroundColor Yellow
   exit 1
 }
 
@@ -45,4 +47,4 @@ Write-Host "    https://XXXX.trycloudflare.com/?token=$token" -ForegroundColor C
 Write-Host "(after the first visit the token is remembered on that phone)"  -ForegroundColor DarkGray
 Write-Host ""
 
-cloudflared tunnel --url http://localhost:8000
+& $cfExe tunnel --url http://localhost:8000
