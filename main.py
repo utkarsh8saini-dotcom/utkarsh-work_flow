@@ -7,6 +7,24 @@ import sys
 
 from dotenv import load_dotenv
 
+
+def _force_utf8_output() -> None:
+    """Ensure Unicode output works on consoles whose default encoding isn't UTF-8.
+
+    Windows consoles default to cp1252, which can't encode characters like the
+    "→" used in route labels, so Rich would raise UnicodeEncodeError. Forcing
+    stdio to UTF-8 here — before any Rich Console is created — avoids that.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            try:
+                reconfigure(encoding="utf-8")
+            except (ValueError, OSError):
+                pass
+
+
+_force_utf8_output()
 load_dotenv()
 
 
