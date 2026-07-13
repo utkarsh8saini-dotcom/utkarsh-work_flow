@@ -149,11 +149,37 @@ class GoogleFlightsProvider(FlightProvider):
             currency=currency,
         )
         html = _fetch_html_with_retry(query, os.environ.get("HTTPS_PROXY") or None)
-        results = _parse_flights(html)
+        return self._offers_from_html(html, origin, destination, currency)
 
+    def search_roundtrip(
+        self,
+        origin: str,
+        destination: str,
+        out_date: str,
+        return_date: str,
+        adults: int = 1,
+        currency: str = "USD",
+    ) -> list[FlightOffer]:
+        """Round-trip search. Google's first page lists outbound options priced at the
+        full round-trip total, so each offer's price is the whole trip and its times are
+        the outbound leg; the chosen return date is attached as ``return_date``."""
+        query = create_query(
+            flights=[
+                FlightQuery(date=out_date, from_airport=origin.upper(), to_airport=destination.upper()),
+                FlightQuery(date=return_date, from_airport=destination.upper(), to_airport=origin.upper()),
+            ],
+            trip="round-trip",
+            seat="economy",
+            passengers=Passengers(adults=adults),
+            currency=currency,
+        )
+        html = _fetch_html_with_retry(query, os.environ.get("HTTPS_PROXY") or None)
+        return self._offers_from_html(html, origin, destination, currency, return_date=return_date)
+
+    def _offers_from_html(self, html, origin, destination, currency, return_date=None):
         now = datetime.now()
         offers: list[FlightOffer] = []
-        for flight in results:
+        for flight in _parse_flights(html):
             price = getattr(flight, "price", None)
             if not isinstance(price, (int, float)) or price <= 0:
                 continue  # "Price unavailable" rows come through as 0
@@ -173,6 +199,7 @@ class GoogleFlightsProvider(FlightProvider):
                 origin=origin.upper(),
                 destination=destination.upper(),
                 recorded_at=now,
+                return_date=return_date,
             ))
 
         return sorted(offers, key=lambda o: o.price)

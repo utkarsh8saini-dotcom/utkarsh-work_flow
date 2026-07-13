@@ -1,0 +1,35 @@
+# Render Blueprint (alternative to Fly). Push this repo to GitHub, then in Render:
+# New + → Blueprint → pick the repo. Set the "sync:false" secrets in the dashboard.
+# NOTE: the free plan sleeps after ~15 min idle (the 24/7 sampler pauses while asleep).
+# "starter" is always-on and supports the persistent disk below.
+services:
+  - type: web
+    name: flight-price-tracker
+    runtime: docker
+    plan: starter
+    healthCheckPath: /healthz
+    envVars:
+      - key: DATA_DIR
+        value: /data
+      - key: DEFAULT_CURRENCY
+        value: INR
+      - key: WATCH_INTERVAL_MINUTES
+        value: "30"
+      - key: APP_TOKEN
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: ALERT_FROM
+        sync: false
+      - key: ALERT_TO
+        sync: false
+    disk:
+      name: data
+      mountPath: /data
+      sizeGB: 1

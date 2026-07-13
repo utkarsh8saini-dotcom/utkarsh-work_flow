@@ -1,0 +1,37 @@
+# Fly.io config — deploy straight from this folder (no GitHub needed).
+#   fly launch --no-deploy      (creates the app; keep this fly.toml)
+#   fly volumes create flight_data --size 1
+#   fly secrets set APP_TOKEN=... SMTP_HOST=... SMTP_USER=... SMTP_PASSWORD=... ALERT_TO=...
+#   fly deploy
+app = "flight-price-tracker"       # change if the name is taken
+primary_region = "sin"             # Singapore — near these routes; pick your own
+
+[build]
+
+[env]
+  DATA_DIR = "/data"
+  DEFAULT_CURRENCY = "INR"
+  WATCH_INTERVAL_MINUTES = "30"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = false        # stay ON 24/7 so the sampler keeps running
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.checks]
+    [http_service.checks.health]
+      method = "get"
+      path = "/healthz"
+      interval = "30s"
+      timeout = "5s"
+
+# Persistent history across restarts/redeploys.
+[[mounts]]
+  source = "flight_data"
+  destination = "/data"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

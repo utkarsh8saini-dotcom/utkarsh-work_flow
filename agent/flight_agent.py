@@ -86,6 +86,59 @@ class FlightAgent:
             print_daily_cheapest(cheapest_by_date, origin, destination)
         console.print(f"[dim]Results saved to {self._storage.path}[/dim]")
 
+    def search_weekends(
+        self,
+        origin: str,
+        destination: str,
+        start: str | None,
+        end: str | None,
+        adults: int = 1,
+        currency: str = "USD",
+    ) -> None:
+        """Price Thu/Fri departures returning the next Sunday (round-trip totals)."""
+        from agent.dates import weekend_pairs
+
+        if not hasattr(self._provider, "search_roundtrip"):
+            console.print("[red]Round-trip search isn't supported by the current provider.[/red]")
+            return
+        pairs = weekend_pairs(start, end)
+        if not pairs:
+            console.print("[yellow]No Thursday/Friday departures in the range.[/yellow]")
+            return
+        console.print(
+            f"\n[bold]Weekend round-trips:[/bold] {origin} ⇄ {destination}  "
+            f"(Thu/Fri out → next Sun back · {len(pairs)} weekends)\n"
+        )
+        cheapest: dict[str, FlightOffer] = {}
+        labels: dict[str, str] = {}
+        for p in pairs:
+            label = f"{p['dow']} {p['out']} → Sun {p['ret']}"
+            try:
+                offers = self._provider.search_roundtrip(
+                    origin, destination, p["out"], p["ret"], adults, currency
+                )
+            except Exception as exc:
+                console.print(f"[red]{label}: failed ({exc})[/red]")
+                continue
+            if offers:
+                self._storage.append_offers(offers)
+                cheapest[p["out"]] = offers[0]
+                labels[p["out"]] = label
+                console.print(f"[dim]{label}: {offers[0].display_price()} ({offers[0].airline})[/dim]")
+            else:
+                console.print(f"[dim]{label}: no fares[/dim]")
+
+        if not cheapest:
+            console.print("[yellow]No round-trip fares found.[/yellow]")
+            return
+        best_out = min(cheapest, key=lambda k: cheapest[k].price)
+        best = cheapest[best_out]
+        console.print(
+            f"\n[bold green]Best weekend:[/bold green] {best.display_price()} on {best.airline} — "
+            f"{labels[best_out]} (out {best.departure_time.strftime('%H:%M')}, {best.duration})"
+        )
+        console.print(f"[dim]Round-trip results saved to {self._storage.path}[/dim]")
+
     def monitor(
         self,
         origin: str,

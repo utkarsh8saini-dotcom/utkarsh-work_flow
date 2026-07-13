@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AEROFARE — Flight Price Terminal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+
+  <!-- ── Signage header ─────────────────────────────────────────── -->
+  <header class="board-header">
+    <div class="brand">
+      <span class="plane">✈</span>
+      <div class="brand-text">
+        <h1>AEROFARE</h1>
+        <span class="brand-sub">PRICE&nbsp;TERMINAL</span>
+      </div>
+    </div>
+    <div class="header-meta">
+      <span id="provider-pill" class="pill">connecting…</span>
+      <span class="clock" id="clock">--:--:--</span>
+    </div>
+  </header>
+
+  <main>
+    <!-- ── Boarding-pass control ────────────────────────────────── -->
+    <section class="ticket" id="ticket">
+      <div class="ticket-main">
+        <div class="endpoint">
+          <label>FROM</label>
+          <input id="origin" class="iata" maxlength="3" value="DEL" spellcheck="false" />
+        </div>
+        <button id="swap" class="swap" title="Swap">⇄</button>
+        <div class="endpoint">
+          <label>TO</label>
+          <input id="destination" class="iata" maxlength="3" value="DPS" spellcheck="false" />
+        </div>
+        <div class="route-arc" aria-hidden="true">
+          <span class="dot"></span><span class="arc"></span><span class="dot"></span>
+        </div>
+      </div>
+
+      <div class="ticket-stub">
+        <div class="field">
+          <label>DEPART FROM</label>
+          <input id="date" type="date" />
+        </div>
+        <div class="field">
+          <label>THROUGH</label>
+          <input id="end-date" type="date" />
+        </div>
+        <div class="field small">
+          <label>PAX</label>
+          <input id="adults" type="number" min="1" value="1" />
+        </div>
+        <div class="field small">
+          <label>CUR</label>
+          <input id="currency" maxlength="3" value="INR" spellcheck="false" />
+        </div>
+      </div>
+
+      <div class="ticket-actions">
+        <div class="trip-toggle" id="trip-toggle">
+          <button data-mode="oneway" class="active">One-way</button>
+          <button data-mode="weekend">Weekend ⇄</button>
+        </div>
+        <button id="btn-load" class="btn ghost">Load stored</button>
+        <button id="btn-scan" class="btn amber">Live scan ▸</button>
+      </div>
+      <p class="range-hint" id="range-hint">Empty dates → <strong>today through end of month</strong>, auto-rolling.</p>
+    </section>
+
+    <div id="routes" class="routes"></div>
+    <div id="watchbar" class="watchbar hidden"></div>
+
+    <div id="progress" class="progress hidden">
+      <div class="progress-track"><div id="progress-bar" class="progress-bar"></div></div>
+      <span id="progress-label" class="progress-label"></span>
+    </div>
+
+    <!-- ── Stats ────────────────────────────────────────────────── -->
+    <section id="stats" class="stats hidden"></section>
+
+    <!-- ── Best deal boarding pass ──────────────────────────────── -->
+    <section id="best-deal" class="hidden"></section>
+
+    <!-- ── Departures board ─────────────────────────────────────── -->
+    <section class="board hidden" id="board-section">
+      <div class="board-title">
+        <h2>Departures — cheapest per day</h2>
+        <span id="board-route" class="board-route"></span>
+      </div>
+      <div class="board-head">
+        <span class="c-date">Date</span>
+        <span class="c-price">Fare</span>
+        <span class="c-air">Carrier</span>
+        <span class="c-dep">Dep</span>
+        <span class="c-dur">Duration</span>
+        <span class="c-stop">Stops</span>
+        <span class="c-verify">Verify</span>
+      </div>
+      <div id="board-rows"></div>
+    </section>
+
+    <!-- ── Price Watch ──────────────────────────────────────────── -->
+    <section class="watch hidden" id="watch-section">
+      <div class="watch-head">
+        <div>
+          <h2>Price Watch — when to book</h2>
+          <span id="watch-target" class="watch-target"></span>
+        </div>
+        <div class="watch-actions">
+          <input id="watch-threshold" class="thresh" type="number" inputmode="numeric"
+                 placeholder="alert ≤ price" title="Email me if the fare drops to or below this" />
+          <button id="watch-sample" class="btn ghost">↻ Sample now</button>
+          <button id="watch-toggle" class="btn amber">◉ Watch</button>
+          <button id="watch-close" class="btn ghost" title="Close">✕</button>
+        </div>
+      </div>
+      <div class="watch-grid">
+        <div class="signal" id="watch-signal"></div>
+        <div class="watch-stats" id="watch-stats"></div>
+      </div>
+      <div class="chart-wrap">
+        <svg id="watch-chart" viewBox="0 0 720 240" preserveAspectRatio="none" aria-label="price over time"></svg>
+      </div>
+      <div class="compare" id="watch-compare"></div>
+      <p class="watch-note">
+        Recorded from Google Flights and tracked over time. Auto-watch re-samples about every
+        <strong id="watch-interval">30</strong> min while the server runs — that history is what
+        makes the buy/wait call meaningful. The <strong>compare</strong> chips open the same search
+        on other platforms to cross-check the fare.
+        <span id="watch-alert-hint"></span>
+      </p>
+    </section>
+
+    <!-- ── Analysis ─────────────────────────────────────────────── -->
+    <section class="analysis hidden" id="analysis-section">
+      <h2>Pattern analysis</h2>
+      <div class="analysis-grid">
+        <div class="mini-board">
+          <h3>Avg fare by weekday</h3>
+          <div id="dow"></div>
+        </div>
+        <div class="mini-board">
+          <h3>Avg fare by fetch hour</h3>
+          <div id="hour"></div>
+        </div>
+      </div>
+      <div class="reco" id="reco"></div>
+    </section>
+
+    <div id="empty" class="empty hidden">
+      <span class="empty-glyph">⃠</span>
+      <p>No fares recorded for this route yet.<br />Hit <strong>Live scan</strong> to pull the month from Google Flights.</p>
+    </div>
+
+    <footer class="foot">
+      <span>Data scraped live from Google Flights · no API key</span>
+      <span class="foot-accuracy">Every row links out to the real Google Flights search — click <strong>Verify</strong> to check any fare against the source.</span>
+    </footer>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

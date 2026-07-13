@@ -13,11 +13,15 @@ COLUMNS = [
     "recorded_at", "airline", "price", "currency",
     "departure", "arrival", "duration", "stops", "origin", "destination",
 ]
+COLUMNS_RT = [
+    "recorded_at", "airline", "price", "currency",
+    "departure", "arrival", "return_date", "duration", "stops", "origin", "destination",
+]
 
 
-def _sheet_name(origin: str, destination: str) -> str:
-    name = f"{origin.upper()}→{destination.upper()}"
-    return name[:31]  # Excel sheet name limit
+def _sheet_name(origin: str, destination: str, roundtrip: bool = False) -> str:
+    sep = "⇄" if roundtrip else "→"
+    return f"{origin.upper()}{sep}{destination.upper()}"[:31]  # Excel sheet name limit
 
 
 def _style_header(ws) -> None:
@@ -41,14 +45,13 @@ class PriceStorage:
         wb.remove(wb.active)  # remove default blank sheet
         return wb
 
-    def _get_or_create_sheet(self, wb: Workbook, origin: str, destination: str):
-        name = _sheet_name(origin, destination)
+    def _get_or_create_sheet(self, wb: Workbook, name: str, columns: list[str]):
         if name in wb.sheetnames:
             return wb[name]
         ws = wb.create_sheet(name)
-        ws.append(COLUMNS)
+        ws.append(columns)
         _style_header(ws)
-        for i, _ in enumerate(COLUMNS, 1):
+        for i, _ in enumerate(columns, 1):
             ws.column_dimensions[get_column_letter(i)].width = 18
         return ws
 
@@ -56,38 +59,36 @@ class PriceStorage:
         if not offers:
             return
         wb = self._load_or_create_workbook()
-        # Group by route
-        routes: dict[tuple, list[FlightOffer]] = {}
+        # Group by route + trip type (round-trip offers carry a return_date)
+        groups: dict[tuple, list[FlightOffer]] = {}
         for o in offers:
-            key = (o.origin, o.destination)
-            routes.setdefault(key, []).append(o)
+            groups.setdefault((o.origin, o.destination, o.return_date is not None), []).append(o)
 
-        for (origin, destination), route_offers in routes.items():
-            ws = self._get_or_create_sheet(wb, origin, destination)
-            for o in route_offers:
-                ws.append([
+        for (origin, destination, roundtrip), items in groups.items():
+            columns = COLUMNS_RT if roundtrip else COLUMNS
+            ws = self._get_or_create_sheet(wb, _sheet_name(origin, destination, roundtrip), columns)
+            for o in items:
+                head = [
                     o.recorded_at.strftime("%Y-%m-%d %H:%M:%S"),
-                    o.airline,
-                    o.price,
-                    o.currency,
+                    o.airline, o.price, o.currency,
                     o.departure_time.strftime("%Y-%m-%d %H:%M"),
                     o.arrival_time.strftime("%Y-%m-%d %H:%M"),
-                    o.duration,
-                    o.stops,
-                    o.origin,
-                    o.destination,
-                ])
+                ]
+                tail = [o.duration, o.stops, o.origin, o.destination]
+                ws.append(head + ([o.return_date] + tail if roundtrip else tail))
         wb.save(self._path)
 
-    def load_history(self, origin: str, destination: str) -> list[dict]:
+    def load_history(self, origin: str, destination: str, roundtrip: bool = False) -> list[dict]:
         if not self._path.exists():
             return []
         wb = openpyxl.load_workbook(self._path, read_only=True, data_only=True)
-        name = _sheet_name(origin, destination)
-        if name not in wb.sheetnames:
-            return []
-        ws = wb[name]
-        rows = list(ws.iter_rows(values_only=True))
+        try:
+            name = _sheet_name(origin, destination, roundtrip)
+            if name not in wb.sheetnames:
+                return []
+            rows = list(wb[name].iter_rows(values_only=True))
+        finally:
+            wb.close()  # read_only mode keeps the file open until closed (locks it on Windows)
         if len(rows) < 2:
             return []
         headers = rows[0]

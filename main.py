@@ -48,6 +48,8 @@ def _build_parser() -> argparse.ArgumentParser:
                         "pass the same value as --date for a single-day search)")
     s.add_argument("--adults", type=int, default=1, metavar="N")
     s.add_argument("--currency", default=os.getenv("DEFAULT_CURRENCY", "USD"))
+    s.add_argument("--weekend", action="store_true",
+                   help="Only Thu/Fri departures, returning the next Sunday (round-trip)")
 
     # ── monitor ───────────────────────────────────────────────────────────────
     m = sub.add_parser("monitor", help="Continuously poll prices and alert on drops")
@@ -71,12 +73,22 @@ def _build_parser() -> argparse.ArgumentParser:
     a.add_argument("--from", dest="origin", required=True, metavar="IATA")
     a.add_argument("--to", dest="destination", required=True, metavar="IATA")
 
+    # ── serve ─────────────────────────────────────────────────────────────────
+    srv = sub.add_parser("serve", help="Launch the local web UI to browse and verify fares")
+    srv.add_argument("--host", default="127.0.0.1", help="Bind host (default: 127.0.0.1)")
+    srv.add_argument("--port", type=int, default=8000, help="Port (default: 8000)")
+
     return parser
 
 
 def main() -> None:
     parser = _build_parser()
     args = parser.parse_args()
+
+    if args.command == "serve":
+        from web.server import run
+        run(host=args.host, port=args.port)
+        return
 
     try:
         from agent.flight_agent import FlightAgent
@@ -99,13 +111,23 @@ def main() -> None:
 def _dispatch(agent, args) -> None:
     if args.command == "search":
         from agent.dates import build_date_range
-        agent.search_cheapest(
-            origin=args.origin,
-            destination=args.destination,
-            dates=build_date_range(args.date, args.end_date),
-            adults=args.adults,
-            currency=args.currency,
-        )
+        if args.weekend:
+            agent.search_weekends(
+                origin=args.origin,
+                destination=args.destination,
+                start=args.date,
+                end=args.end_date,
+                adults=args.adults,
+                currency=args.currency,
+            )
+        else:
+            agent.search_cheapest(
+                origin=args.origin,
+                destination=args.destination,
+                dates=build_date_range(args.date, args.end_date),
+                adults=args.adults,
+                currency=args.currency,
+            )
     elif args.command == "monitor":
         from agent.dates import build_date_range
         agent.monitor(

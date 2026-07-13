@@ -1,0 +1,10 @@
+# Runtime dependencies for the container image (see pyproject.toml for the source of truth).
+flask>=3.0
+waitress>=3.0
+rich>=13.0
+python-dotenv>=1.0
+openpyxl>=3.1
+pandas>=2.0
+fast-flights>=3.0.2
+typing-extensions>=4.16.0
+serpapi>=0.1.5

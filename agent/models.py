@@ -15,6 +15,7 @@ class FlightOffer:
     destination: str
     recorded_at: datetime = field(default_factory=datetime.now)
     booking_url: str | None = None
+    return_date: str | None = None  # set for round-trip offers; price is the round-trip total
 
     def display_price(self) -> str:
         return f"{self.currency} {self.price:,.2f}"
